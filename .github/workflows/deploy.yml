@@ -1,0 +1,79 @@
+name: Deploy to Oracle VM
+
+on:
+  push:
+    tags:
+      - 'deploy.ml.*'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Poetry
+        run: pip install poetry==1.8.3
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: poetry-${{ hashFiles('poetry.lock') }}
+
+      - name: Install dependencies
+        run: poetry install --no-root
+
+      - name: Run tests
+        run: poetry run pytest tests/ -v --tb=short -x -k "not adversarial"
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Load SSH key into agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VM_SSH_KEY }}
+
+      - name: Show loaded key fingerprint
+        run: ssh-add -l
+
+      - name: Add VM to known_hosts
+        run: ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy
+        env:
+          REF: ${{ github.ref_name }}
+        run: |
+          ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} bash -s <<EOF
+          set -euo pipefail
+
+          # Pull latest vigilant-detect code
+          cd ~/vigilant-detect
+          git fetch --all --tags --force
+          git checkout "$REF"
+
+          # Rebuild and restart from vigilant-api compose (shared stack)
+          cd ~/vigilant-api
+          docker compose build vigilant-detect
+          docker compose up -d vigilant-detect
+          docker image prune -f
+
+          # Seed on first deploy if no model is loaded yet
+          sleep 8
+          STATUS=\$(docker compose exec -T vigilant-detect curl -s http://localhost:8001/health \
+            | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','unknown'))" 2>/dev/null \
+            || echo "unknown")
+          if [ "\$STATUS" = "no_model" ]; then
+            echo "No production model found — seeding..."
+            docker compose exec -T vigilant-detect poetry run python scripts/seed.py
+            docker compose restart vigilant-detect
+          else
+            echo "Model already loaded (status=\$STATUS) — skipping seed."
+          fi
+          EOF
