@@ -1,0 +1,38 @@
+services:
+  vigilant-detect:
+    build: .
+    ports:
+      - "8001:8001"
+    environment:
+      - POSTGRES_HOST=host.docker.internal
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=vigilant
+      - POSTGRES_USER=vigilant
+      - POSTGRES_PASSWORD=vigilant
+      - CLICKHOUSE_HOST=host.docker.internal
+      - CLICKHOUSE_PORT=8123
+      - CLICKHOUSE_DB=vigilant
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - VIGILANT_API_URL=https://vigilant-api.duckdns.org
+      - PORT=8001
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+    depends_on:
+      - redis
+    networks:
+      - vigilant-net
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - vigilant-net
+
+networks:
+  vigilant-net:
+    driver: bridge

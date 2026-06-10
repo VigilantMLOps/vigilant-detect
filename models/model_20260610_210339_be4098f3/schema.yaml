@@ -1,0 +1,65 @@
+# vigilant-detect feature schema — authoritative source of truth
+# Feature order here IS the model input order. Never change order without bumping version.
+# schema_hash is computed from this file's SHA256 at training time.
+
+version: "v1"
+
+feature_names:
+  # Offline — rolling aggregates with strict per-row time cutoff
+  - failed_attempts_7d
+  - distinct_ips_7d
+  - login_success_rate_30d
+  - avg_login_hour_7d
+  - account_age_days
+  # Deterministic — always computable, zero I/O
+  - hour_sin
+  - hour_cos
+  - dow_sin
+  - dow_cos
+  # Status flag — cold-start vs known user (set before Redis lookup)
+  - is_cold_start
+  # Online — Redis best-effort, sentinel on any failure
+  - last_login_gap_h
+  - geo_distance_delta
+  - device_seen_flag
+
+feature_dtypes:
+  failed_attempts_7d:     float32
+  distinct_ips_7d:        float32
+  login_success_rate_30d: float32
+  avg_login_hour_7d:      float32
+  account_age_days:       float32
+  hour_sin:               float32
+  hour_cos:               float32
+  dow_sin:                float32
+  dow_cos:                float32
+  is_cold_start:          float32
+  last_login_gap_h:       float32
+  geo_distance_delta:     float32
+  device_seen_flag:       float32
+
+# Sentinel values for every feature.
+# These are DEFINED FLOATS — NaN is INVALID everywhere in the pipeline.
+# Cold-start sentinels: returned when a user has no prior history.
+# Degraded sentinels:   returned when Redis is unavailable.
+# The model is trained with these sentinels present (dropout simulation).
+sentinels:
+  failed_attempts_7d:     0.0       # new user: no failed attempts on record
+  distinct_ips_7d:        0.0       # new user: no IP history
+  login_success_rate_30d: -1.0      # distinct from 0.0 (always-fail user)
+  avg_login_hour_7d:      -1.0      # distinct from 0.0 (midnight user)
+  account_age_days:       0.0       # new account
+  hour_sin:               0.0       # deterministic — no sentinel needed; 0 = hour 0
+  hour_cos:               1.0       # deterministic — cos(0) = 1
+  dow_sin:                0.0       # deterministic — 0 = day 0
+  dow_cos:                1.0       # deterministic — cos(0) = 1
+  is_cold_start:          0.0       # assume known user if unknown
+  last_login_gap_h:      -1.0       # degraded OR cold-start sentinel
+  geo_distance_delta:    -1.0       # degraded OR cold-start sentinel
+  device_seen_flag:       0.0       # degraded OR cold-start: treat as unknown
+
+# is_cold_start logic (computed before Redis lookup):
+#   1 if account_age_days == 0
+#   OR if all offline rolling features are at their cold-start sentinel values
+#   0 otherwise
+# is_cold_start is NOT set to 1 when Redis fails — that is degraded mode.

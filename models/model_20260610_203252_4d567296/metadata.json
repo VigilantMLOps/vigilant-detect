@@ -1,0 +1,52 @@
+{
+  "model_id": "model_20260610_203252_4d567296",
+  "pr_auc": 0.10824283905024983,
+  "ece": 9.71754426235035e-09,
+  "f1": null,
+  "n_rows": 640540,
+  "n_pos": 15752,
+  "n_neg": 432626,
+  "trained_at": "2026-06-10T20:32:52.569188+00:00",
+  "git_sha": "unknown",
+  "schema_hash": "aa9817945b3ff2d86b9be5b164313f58ac6c469361b7775f4c3a354e3f3864e3",
+  "feature_names_version": "v1",
+  "feature_names": [
+    "failed_attempts_7d",
+    "distinct_ips_7d",
+    "login_success_rate_30d",
+    "avg_login_hour_7d",
+    "account_age_days",
+    "hour_sin",
+    "hour_cos",
+    "dow_sin",
+    "dow_cos",
+    "is_cold_start",
+    "last_login_gap_h",
+    "geo_distance_delta",
+    "device_seen_flag"
+  ],
+  "redis_dropout_rate": 0.15,
+  "thresholds": {
+    "challenge": 0.12542372941970825,
+    "block": 0.015492958016693592
+  },
+  "context_rules": {
+    "geo_anomaly_km": 1000.0,
+    "dormancy_hours": 168.0
+  },
+  "seeds_pr_auc": {
+    "42": 0.10824283905024983,
+    "137": 0.12977832297927988,
+    "2024": 0.1340625248700584
+  },
+  "val_timestamp_range": {
+    "start": "2018-04-11 02:18:52+00:00",
+    "end": "2018-05-04 02:40:44+00:00"
+  },
+  "test_timestamp_range": {
+    "start": "2018-05-15 03:22:05+00:00",
+    "end": "2023-12-31 23:59:03+00:00"
+  },
+  "version": "model_20260610_203252_4d567296",
+  "saved_at": "2026-06-10T20:32:52.622680+00:00"
+}

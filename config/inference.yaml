@@ -1,0 +1,19 @@
+# Inference configuration
+# NOTE: threshold values here are starting defaults.
+# They are overwritten at deploy time by training-tuned values from metadata.json.
+# Operator can manually override after deploy — config > metadata at runtime.
+
+decision:
+  threshold_challenge: 0.35     # tuned on threshold_set during training
+  threshold_block: 0.75         # tuned on threshold_set during training
+  rules:
+    geo_anomaly_km: 500.0       # tuned on threshold_set during training
+    dormancy_hours: 720.0       # tuned on threshold_set during training
+    new_device_flag: 0          # structural — no tuning needed
+
+feature_contract:
+  hot_path_validation_rate: 0.05   # 5% in production; 1.0 in staging
+  staging_always_validate: true
+
+vigilant_api_url: "http://localhost:8000"
+push_window_size: 500

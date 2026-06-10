@@ -1,0 +1,30 @@
+# Training pipeline configuration
+
+gates:
+  min_pr_auc_improvement: 0.02
+  max_ece: 0.10
+  pr_auc_rolling_window: 3
+  min_test_positives: 200
+
+multi_seed:
+  seeds: [42, 137, 2024]
+  require_all_pass: true        # NOT require_any_pass
+
+redis_simulation:
+  dropout_rate: 0.15            # 15% of rows simulate Redis unavailability
+  apply_to_splits: [train, val_stop, val_calibration, threshold_set]
+  # test split is NOT simulated — measures clean ceiling performance
+
+xgboost:
+  n_estimators: 500
+  max_depth: 6
+  learning_rate: 0.05
+  subsample: 0.8
+  colsample_bytree: 0.8
+  early_stopping_rounds: 50
+
+synthetic:
+  n_total: 50000
+  seed: 42
+
+decay_rate: 0.02                # exp(-0.02 * days_since_event) for retraining

@@ -1,0 +1,6 @@
+{
+  "normal_user_daytime": "c3af647f7f87484bcd806e592e4dea00044c39af4365eacf0ebbc23f5c77e972",
+  "cold_start_new_user": "f22f334ab416849ad510797935df4fd792e6065ae09fdc90cc3531ee8c28e9aa",
+  "high_risk_attacker": "af8962620b8383ec209d72e7e5d673417e1bc4833ea875496327e71e3936727a",
+  "degraded_known_user": "c58fc0cc0671ce09e72e54a14f5ff5847ca1d83928eb388ed012f7ec57056dcf"
+}
