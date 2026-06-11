@@ -1,0 +1,20 @@
+vigilantpack: "1"
+
+app:
+  name: vigilant-detect
+  version: "1.0"
+
+compose: docker-compose.yml
+
+startup:
+  timeout: 120
+
+services:
+  redis:
+    health: tcp://localhost:6379
+    timeout: 30
+
+runtime:
+  service: vigilant-detect
+  health: http://localhost:8001/health
+  timeout: 60
