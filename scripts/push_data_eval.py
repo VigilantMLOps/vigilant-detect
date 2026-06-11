@@ -62,7 +62,7 @@ def _eval_split(split_df, split_name: str, model_version: str) -> dict:
 
     return {
         "split": split_name,
-        "model_version": model_version,
+        "model_version": split_name,
         "n_rows": len(split_df),
         "n_features": len(feature_cols),
         "class_distribution": class_dist,
@@ -97,7 +97,13 @@ def main():
     print("Step 2: Computing features and temporal splits ...")
     feat_df = compute_training_features(df)
     splits = temporal_split(feat_df)
-    split_names = ["train", "val_stop", "val_calibration", "threshold_set", "test"]
+    split_names = [
+        "1 - Training",
+        "2 - Validation (Early Stop)",
+        "3 - Validation (Calibration)",
+        "4 - Threshold Tuning",
+        "5 - Final Evaluation",
+    ]
 
     print("Step 3: Pushing DATA_EVAL reports to vigilant-api ...")
     for name, split_df in zip(split_names, splits):
