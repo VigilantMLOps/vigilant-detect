@@ -4,25 +4,15 @@ ML inference service for Account Takeover (ATO) detection. Part of the Vigilant 
 
 vigilant-detect owns the full ML lifecycle — training, serving, retraining, and explainability. It exposes a REST API on port 8001 and integrates with **vigilant-api** (the observability plane) by pushing evaluation results and drift statistics in 500-event windows.
 
+Live here: https://vigilant-ui.duckdns.org/model-serving
+
 ## Architecture
 
-```
-vigilant-api  →  POST /api/v1/events/login  →  vigilant-detect :8001
-                                                     │
-                                 ┌───────────────────┤
-                                 │                   │
-                             Redis (online       PostgreSQL +
-                             features:           ClickHouse (shared
-                             last_login,         with vigilant-api):
-                             geo_delta,          ato_models, feedback,
-                             device_flag)        ato_production_log
-                                                     │
-                                 ┌───────────────────┘
-                                 │  per-500-event window push
-                                 ↓
-                             vigilant-api :8000
-                             (observability plane)
-```
+<img width="1408" height="768" alt="Gemini_Generated_Image_4ewg9z4ewg9z4ewg" src="https://github.com/user-attachments/assets/e3211518-179e-46c7-9cf6-d1dc62ed2af8" />
+
+<img width="2990" height="1674" alt="image" src="https://github.com/user-attachments/assets/d37c3b99-6f4c-4ed5-8208-4199e0c52fbb" />
+
+
 
 **vigilant-api** is the observability plane — it handles monitoring, drift detection, incident alerting, and the React dashboard. vigilant-detect is the intelligence plane — it scores every login event and pushes aggregated metrics to vigilant-api.
 
