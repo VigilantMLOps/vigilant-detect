@@ -13,6 +13,8 @@ Live here: https://vigilant-ui.duckdns.org/model-serving
 <img width="2990" height="1674" alt="image" src="https://github.com/user-attachments/assets/d37c3b99-6f4c-4ed5-8208-4199e0c52fbb" />
 
 
+</br>
+</br>
 
 **vigilant-api** is the observability plane — it handles monitoring, drift detection, incident alerting, and the React dashboard. vigilant-detect is the intelligence plane — it scores every login event and pushes aggregated metrics to vigilant-api.
 
