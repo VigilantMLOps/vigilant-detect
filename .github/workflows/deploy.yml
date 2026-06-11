@@ -50,7 +50,7 @@ jobs:
         env:
           REF: ${{ github.ref_name }}
         run: |
-          ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} bash -s <<EOF
+          ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=10 ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} bash -s <<EOF
           set -euo pipefail
 
           # Pull latest vigilant-detect code

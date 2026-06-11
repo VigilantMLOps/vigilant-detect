@@ -1,6 +1,7 @@
-"""Bootstrap script: generate → train → deploy → push baselines to vigilant-api."""
+"""Bootstrap script: generate → train → deploy → push initial report to vigilant-api."""
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -39,8 +40,43 @@ def main():
     swap_model(state)
     print(f"  Deployed {result.model_id}")
 
+    print("Step 4: Pushing initial evaluation report to vigilant-api ...")
+    _push_initial_report(result)
+
     print("Seed complete.")
     db.shutdown()
+
+
+def _push_initial_report(result) -> None:
+    import httpx
+
+    vigilant_api_url = os.getenv("VIGILANT_API_URL", "http://localhost:8000")
+
+    if result.y_true_test is None or result.y_pred_proba_test is None:
+        print("  Skipping push — test metrics not available in TrainingResult.")
+        return
+
+    try:
+        resp = httpx.post(
+            f"{vigilant_api_url}/api/v1/reporter/ingest-metrics",
+            json={
+                "y_true": result.y_true_test,
+                "y_pred_proba": result.y_pred_proba_test,
+                "model_version": result.model_id,
+                "schema_hash": result.metadata.get("schema_hash", ""),
+                "display_name": "ATO Detector",
+            },
+            timeout=30.0,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        print(
+            f"  Report pushed: report_id={data['report_id']}"
+            f"  F1={data['f1']:.4f}  ROC-AUC={data['roc_auc']:.4f}"
+            f"  PR-AUC(train)={result.pr_auc:.4f}"
+        )
+    except Exception as exc:
+        print(f"  Warning: could not push report to vigilant-api ({exc}). Dashboard may be empty.")
 
 
 if __name__ == "__main__":

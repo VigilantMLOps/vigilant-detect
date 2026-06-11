@@ -30,6 +30,9 @@ class LoginEvent(BaseModel):
     login_success_rate_30d: float | None = None
     avg_login_hour_7d: float | None = None
     account_age_days: float | None = None
+    # Online feature overrides (applied only when Redis has no prior state for this user)
+    last_login_gap_h: float | None = None
+    geo_distance_delta: float | None = None
 
 
 class PredictionResult(BaseModel):

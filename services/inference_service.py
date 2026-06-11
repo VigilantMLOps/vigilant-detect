@@ -9,7 +9,7 @@ import httpx
 
 from core.features.online import fetch_redis_features, update_redis_state, SENTINEL_DICT
 from core.features.transformer import FeatureTransformer
-from core.inference.decision import DecisionRules
+from core.inference.decision import Decision, DecisionRules
 from core.inference.engine import InferenceResult, run_inference
 from core.inference.state import get_model_state, ModelState
 from core.monitoring.latency import LatencyTracker
@@ -98,6 +98,14 @@ class InferenceService:
             redis_features = dict(SENTINEL_DICT)
             is_degraded = True
 
+        # Apply explicit request-level overrides for online features — but only
+        # when Redis returned a sentinel (no prior state for this user).
+        # This lets callers drive realistic demo scenarios without seeding Redis.
+        for key in ("last_login_gap_h", "geo_distance_delta"):
+            override = event_dict.get(key)
+            if override is not None and redis_features.get(key) == SENTINEL_DICT.get(key):
+                redis_features[key] = float(override)
+
         # Alert on first degradation per service lifecycle
         if is_degraded and not self._first_degradation_logged:
             _logger.info("Redis degraded mode — serving predictions with sentinel features.")
@@ -140,10 +148,20 @@ class InferenceService:
             is_degraded=is_degraded,
         )
 
+        # Effective risk score: floor at the decision threshold when context rules
+        # escalate beyond what the model probability alone would produce.
+        # calibrated_probability is kept as the raw model output for transparency.
+        if result.decision == Decision.BLOCK:
+            effective_risk = max(result.calibrated_probability, self.rules.threshold_block)
+        elif result.decision == Decision.CHALLENGE:
+            effective_risk = max(result.calibrated_probability, self.rules.threshold_challenge)
+        else:
+            effective_risk = result.calibrated_probability
+
         return {
             "event_id": event_id,
             "decision": result.decision.value,
-            "risk_score": round(result.calibrated_probability, 4),
+            "risk_score": round(effective_risk, 4),
             "calibrated_probability": round(result.calibrated_probability, 4),
             "confidence": result.confidence,
             "context_flags": result.context_flags,
@@ -253,22 +271,14 @@ class InferenceService:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 if y_true:
                     await client.post(
-                        f"{self.vigilant_api_url}/api/v1/reporter/evaluate-model",
-                        json=build_evaluate_model_payload(
-                            schema_hash, fn_version, model_version,
-                            self._window_start, now, y_true, y_pred,
-                        ),
+                        f"{self.vigilant_api_url}/api/v1/reporter/ingest-metrics",
+                        json={
+                            "y_true": [int(v) for v in y_true],
+                            "y_pred_proba": [float(v) for v in y_pred],
+                            "model_version": model_version,
+                            "schema_hash": schema_hash,
+                        },
                     )
-
-                # Drift payload: feature stats
-                feature_stats = self._compute_feature_stats(events, state.transformer.feature_names_out)
-                await client.post(
-                    f"{self.vigilant_api_url}/api/v1/reporter/evaluate-drift",
-                    json=build_evaluate_drift_payload(
-                        schema_hash, fn_version, model_version,
-                        self._window_start, now, feature_stats,
-                    ),
-                )
         except Exception as e:
             _logger.warning("Monitoring push to vigilant-api failed: {}", e)
 
