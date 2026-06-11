@@ -5,7 +5,7 @@
 
 decision:
   threshold_challenge: 0.35     # tuned on threshold_set during training
-  threshold_block: 0.75         # tuned on threshold_set during training
+  threshold_block: 0.50         # calibrated probabilities cap at ~58% for this model
   rules:
     geo_anomaly_km: 500.0       # tuned on threshold_set during training
     dormancy_hours: 720.0       # tuned on threshold_set during training

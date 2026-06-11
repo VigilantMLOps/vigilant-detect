@@ -60,6 +60,8 @@ class TrainingResult:
     context_rules: dict[str, float]
     seeds_pr_auc: dict[int, float]
     metadata: dict
+    y_true_test: list[int] | None = None
+    y_pred_proba_test: list[float] | None = None
 
 
 def _get_git_sha() -> str:
@@ -371,6 +373,8 @@ def train(
     if db is not None:
         register_model(db, model_id, metadata, status="staging")
 
+    test_proba = calibrator.predict(final_model.predict_proba(X_test)[:, 1])
+
     return TrainingResult(
         model_id=model_id,
         pr_auc=final_pr_auc,
@@ -379,4 +383,6 @@ def train(
         context_rules=metadata["context_rules"],
         seeds_pr_auc=gate_result.pr_auc_per_seed,
         metadata=metadata,
+        y_true_test=y_test.tolist(),
+        y_pred_proba_test=test_proba.tolist(),
     )
